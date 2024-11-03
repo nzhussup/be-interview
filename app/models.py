@@ -20,3 +20,9 @@ class Location(Base, table=True):
     location_name: str
     longitude: float
     latitude: float
+    
+class CreateLocation(Base):
+    organisation_id: int = Field(foreign_key="organisation.id")
+    location_name: str
+    longitude: float
+    latitude: float

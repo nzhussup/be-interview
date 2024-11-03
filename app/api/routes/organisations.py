@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from sqlmodel import select, Session
 
 from app.db import get_db
-from app.models import Location, Organisation, CreateOrganisation
+from app.models import Location, Organisation, CreateOrganisation, CreateLocation
 
 router = APIRouter()
 
@@ -37,10 +37,29 @@ def get_organisation(organisation_id: int, session: Session = Depends(get_db)) -
     return organisation
 
 
-@router.post("/create/locations")
-def create_location():
-    raise NotImplementedError
+@router.post("/create/locations", response_model = Location)
+def create_location(create_location: CreateLocation, session: Session = Depends(get_db)) -> Location:
+    """
+    Create locations
+    """
+    
+    organisation = session.get(Organisation, create_location.organisation_id)
+    if organisation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organisation not found")
 
+    
+    
+    location = Location(organisation_id=organisation.id,
+                        location_name=create_location.location_name,
+                        longitude=create_location.longitude,
+                        latitude=create_location.latitude
+                        )
+    
+    session.add(location)
+    session.commit()
+    session.refresh(location)
+    return location
+    
 
 @router.get("/{organisation_id}/locations")
 def get_organisation_locations(organisation_id: int, session: Session = Depends(get_db)):
