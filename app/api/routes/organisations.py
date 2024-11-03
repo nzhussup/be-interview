@@ -62,10 +62,27 @@ def create_location(create_location: CreateLocation, session: Session = Depends(
     
 
 @router.get("/{organisation_id}/locations")
-def get_organisation_locations(organisation_id: int, session: Session = Depends(get_db)):
-    location_ids = session.exec(select(Location.id).where(Location.organisation_id==organisation_id)).all()
-    result = []
-    for location_id in location_ids:
-        location = session.exec(select(Location).where(Location.id == location_id)).one()
-        result.append({"location_name": location.location_name, "location_longitude": location.longitude, "location_latitude": location.latitude })
-    return result
+def get_organisation_locations(organisation_id: int, session: Session = Depends(get_db)) -> list:
+    
+    locations = session.exec(
+    select(
+        Location.location_name,
+        Location.longitude,
+        Location.latitude
+    ).where(Location.organisation_id == organisation_id)
+    ).all()
+    
+    if not locations:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No locations for organisation {organisation_id} found")
+    
+    # Return list with extra formatting loop
+    return [{"location_name": loc.location_name,
+             "location_longitude": loc.longitude,
+             "location_latitude": loc.latitude} for loc in locations]
+
+    # location_ids = session.exec(select(Location.id).where(Location.organisation_id==organisation_id)).all()
+    # result = []
+    # for location_id in location_ids:
+    #     location = session.exec(select(Location).where(Location.id == location_id)).one()
+    #     result.append({"location_name": location.location_name, "location_longitude": location.longitude, "location_latitude": location.latitude })
+    # return result
