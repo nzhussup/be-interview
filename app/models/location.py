@@ -1,16 +1,6 @@
-from sqlmodel import SQLModel, Field, Relationship
-
-
-class Base(SQLModel):
-    pass
-
-class CreateOrganisation(Base):
-    name: str
-
-
-class Organisation(Base, table=True):
-    id: int | None = Field(primary_key=True)
-    name: str
+from sqlmodel import Field, Relationship
+from app.models.organisation import Organisation
+from app.models.base import Base
 
 
 class Location(Base, table=True):
