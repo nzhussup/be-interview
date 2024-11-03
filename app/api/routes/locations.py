@@ -8,11 +8,14 @@ from app.models.location import Location, CreateLocation
 
 router = APIRouter()
 
+
 @router.post("/create", response_model = Location)
-def create_location(create_location: CreateLocation, session: Session = Depends(get_db)) -> Location:
+def create_location(create_location: CreateLocation, 
+                    session: Session = Depends(get_db)) -> Location:
     """
     Create locations
     """
+    
     
     organisation = session.get(Organisation, create_location.organisation_id)
     if organisation is None:
@@ -36,6 +39,10 @@ def create_location(create_location: CreateLocation, session: Session = Depends(
 def get_organisation_locations(organisation_id: int, 
                                session: Session = Depends(get_db), 
                                bounding_box: Tuple[float, float, float, float] = Query(None)) -> list:
+    
+    """
+    Query locations. With optional param.
+    """
     
     # Define base query
     query = select(
