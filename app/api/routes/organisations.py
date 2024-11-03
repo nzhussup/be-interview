@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlmodel import select, Session
+from typing import Tuple
 
 from app.db import get_db
 from app.models import Location, Organisation, CreateOrganisation, CreateLocation
@@ -62,27 +63,36 @@ def create_location(create_location: CreateLocation, session: Session = Depends(
     
 
 @router.get("/{organisation_id}/locations")
-def get_organisation_locations(organisation_id: int, session: Session = Depends(get_db)) -> list:
+def get_organisation_locations(organisation_id: int, 
+                               session: Session = Depends(get_db), 
+                               bounding_box: Tuple[float, float, float, float] = Query(None)) -> list:
     
-    locations = session.exec(
-    select(
+    # Define base query
+    query = select(
         Location.location_name,
         Location.longitude,
         Location.latitude
-    ).where(Location.organisation_id == organisation_id)
-    ).all()
+        ).where(
+            Location.organisation_id == organisation_id
+        )
+    
+    # Enrich the query with additional where statement if a bounding box is given
+    if bounding_box:
+        min_lat, min_long, max_lat, max_long = bounding_box
+        query = query.where(
+            (Location.latitude >= min_lat) &
+            (Location.latitude <= min_long) &
+            (Location.longitude >= max_lat) &
+            (Location.longitude <= max_long)
+        )
+    
+    locations = session.exec(query).all()
     
     if not locations:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No locations for organisation {organisation_id} found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No locations found for organisation {organisation_id} with bounding box {bounding_box}")
     
     # Return list with extra formatting loop
     return [{"location_name": loc.location_name,
              "location_longitude": loc.longitude,
              "location_latitude": loc.latitude} for loc in locations]
-
-    # location_ids = session.exec(select(Location.id).where(Location.organisation_id==organisation_id)).all()
-    # result = []
-    # for location_id in location_ids:
-    #     location = session.exec(select(Location).where(Location.id == location_id)).one()
-    #     result.append({"location_name": location.location_name, "location_longitude": location.longitude, "location_latitude": location.latitude })
-    # return result
+    
